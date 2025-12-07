@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SYSTEM ACCESS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background-color: #000000;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Courier New', monospace;
+            color: #ff0000;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .container {
+            text-align: center;
+            padding: 40px;
+            border: 1px solid #ff0000;
+            border-radius: 3px;
+            background-color: rgba(255, 0, 0, 0.03);
+            max-width: 600px;
+            width: 90%;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .message {
+            font-size: 28px;
+            font-weight: bold;
+            text-shadow: 0 0 10px #ff0000;
+            margin-bottom: 30px;
+            line-height: 1.4;
+        }
+        
+        .access-granted {
+            color: #00ff00;
+            text-shadow: 0 0 10px #00ff00;
+        }
+        
+        .input-container {
+            margin: 30px 0;
+        }
+        
+        #keyInput {
+            background: transparent;
+            border: 1px solid #ff0000;
+            color: #ff0000;
+            font-size: 20px;
+            padding: 12px 20px;
+            width: 100%;
+            max-width: 300px;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            text-transform: lowercase;
+            outline: none;
+        }
+        
+        #keyInput:focus {
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+        }
+        
+        #submitBtn {
+            background: transparent;
+            border: 1px solid #ff0000;
+            color: #ff0000;
+            font-size: 18px;
+            padding: 12px 30px;
+            margin-top: 15px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s;
+        }
+        
+        #submitBtn:hover {
+            background: rgba(255, 0, 0, 0.1);
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.3);
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .telegram-link {
+            color: #0088cc;
+            font-size: 22px;
+            text-decoration: none;
+            border: 1px solid #0088cc;
+            padding: 15px 25px;
+            display: inline-block;
+            margin-top: 20px;
+            text-shadow: 0 0 8px #0088cc;
+            background: rgba(0, 136, 204, 0.05);
+            transition: all 0.3s;
+        }
+        
+        .telegram-link:hover {
+            background: rgba(0, 136, 204, 0.1);
+            box-shadow: 0 0 20px rgba(0, 136, 204, 0.4);
+        }
+        
+        .error-message {
+            color: #ffff00;
+            margin-top: 15px;
+            font-size: 16px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .blink {
+            animation: blink 1.5s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .scan-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(255, 0, 0, 0.6), 
+                transparent);
+            z-index: 1;
+            animation: scan 4s linear infinite;
+        }
+        
+        @keyframes scan {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+        
+        .glitch {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" opacity="0.05"><rect width="100" height="100" fill="%23ff0000"/></svg>');
+            opacity: 0.02;
+            z-index: 0;
+        }
+        
+        .particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+        
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: #ff0000;
+            border-radius: 50%;
+            animation: float 10s infinite linear;
+        }
+        
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.3;
+            }
+            90% {
+                opacity: 0.3;
+            }
+            100% {
+                transform: translateY(-100px) translateX(100px);
+                opacity: 0;
+            }
+        }
+        
+        .attempts-counter {
+            color: #666;
+            font-size: 14px;
+            margin-top: 20px;
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+        }
+        
+        .access-code {
+            color: #ff0000;
+            font-size: 16px;
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            opacity: 0.3;
+        }
+        
+        .access-code:hover {
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+    <div class="scan-line"></div>
+    <div class="glitch"></div>
+    <div class="particles" id="particles"></div>
+    
+    <div class="container">
+        <div class="message blink" id="mainMessage">
+            ДОСТУП ЗАБЛОКИРОВАН.<br>
+            ВВЕДИТЕ КЛЮЧ
+        </div>
+        
+        <div class="input-container">
+            <input type="text" 
+                   id="keyInput" 
+                   placeholder="введите ключ доступа" 
+                   autocomplete="off"
+                   spellcheck="false">
+            <br>
+            <button id="submitBtn">ПРОВЕРИТЬ</button>
+        </div>
+        
+        <div class="error-message" id="errorMessage">
+            НЕВЕРНЫЙ КЛЮЧ. ПОВТОРИТЕ ВВОД
+        </div>
+        
+        <div class="message hidden access-granted" id="successMessage">
+            ДОСТУП РАЗРЕШЕН<br>
+            <a href="https://t.me/+UkQ4Zf7HGBFlNDgy" 
+               class="telegram-link" 
+               target="_blank">
+               ПЕРЕЙТИ В ЧАТ
+            </a>
+        </div>
+    </div>
+    
+    <div class="attempts-counter" id="attemptsCounter">
+        Попыток: <span id="attempts">0</span>
+    </div>
+    
+    <div class="access-code" title="Подсказка">
+        Подсказка: демо...
+    </div>
+
+    <script>
+        // Элементы
+        const keyInput = document.getElementById('keyInput');
+        const submitBtn = document.getElementById('submitBtn');
+        const mainMessage = document.getElementById('mainMessage');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+        const inputContainer = document.querySelector('.input-container');
+        const attemptsSpan = document.getElementById('attempts');
+        const container = document.querySelector('.container');
+        
+        // Конфигурация
+        const CORRECT_KEY = 'demogorgon';
+        const TELEGRAM_LINK = 'https://t.me/+UkQ4Zf7HGBFlNDgy';
+        let attempts = 0;
+        let accessGranted = false;
+        
+        // Создание частиц
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            for (let i = 0; i < 30; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 10 + 's';
+                particle.style.animationDuration = (Math.random() * 5 + 8) + 's';
+                particlesContainer.appendChild(particle);
+            }
+        }
+        
+        // Проверка ключа
+        function checkKey() {
+            if (accessGranted) return;
+            
+            const userInput = keyInput.value.trim().toLowerCase();
+            
+            if (!userInput) {
+                showError();
+                return;
+            }
+            
+            attempts++;
+            attemptsSpan.textContent = attempts;
+            
+            if (userInput === CORRECT_KEY) {
+                grantAccess();
+            } else {
+                showError();
+                shakeContainer();
+                
+                // После 3 неудачных попыток - подсказка
+                if (attempts === 3) {
+                    showHint();
+                }
+                
+                // После 5 попыток - блокировка на 10 секунд
+                if (attempts >= 5) {
+                    temporaryLock();
+                }
+            }
+        }
+        
+        // Предоставление доступа
+        function grantAccess() {
+            accessGranted = true;
+            
+            // Скрываем элементы ввода
+            mainMessage.classList.add('hidden');
+            inputContainer.classList.add('hidden');
+            errorMessage.style.opacity = '0';
+            
+            // Показываем успешное сообщение
+            successMessage.classList.remove('hidden');
+            
+            // Эффект перехода
+            container.style.borderColor = '#00ff00';
+            container.style.boxShadow = '0 0 30px rgba(0, 255, 0, 0.3)';
+            
+            // Анимация текста
+            const successText = successMessage.querySelector('.telegram-link');
+            successText.classList.add('blink');
+            
+            // Звуковой эффект (опционально)
+            typeSound();
+            
+            // Автоматический фокус на ссылке через 2 секунды
+            setTimeout(() => {
+                successText.focus();
+            }, 2000);
+        }
+        
+        // Показать ошибку
+        function showError() {
+            errorMessage.style.opacity = '1';
+            keyInput.style.borderColor = '#ff0000';
+            keyInput.value = '';
+            
+            setTimeout(() => {
+                errorMessage.style.opacity = '0';
+            }, 2000);
+        }
+        
+        // Показать подсказку
+        function showHint() {
+            const hint = document.querySelector('.access-code');
+            hint.style.opacity = '0.7';
+            hint.textContent = 'Подсказка: демогоргон';
+            
+            setTimeout(() => {
+                hint.style.opacity = '0.3';
+            }, 5000);
+        }
+        
+        // Временная блокировка
+        function temporaryLock() {
+            submitBtn.disabled = true;
+            keyInput.disabled = true;
+            submitBtn.textContent = 'ЗАБЛОКИРОВАНО (10с)';
+            
+            let secondsLeft = 10;
+            const lockInterval = setInterval(() => {
+                secondsLeft--;
+                submitBtn.textContent = `ЗАБЛОКИРОВАНО (${secondsLeft}с)`;
+                
+                if (secondsLeft <= 0) {
+                    clearInterval(lockInterval);
+                    submitBtn.disabled = false;
+                    keyInput.disabled = false;
+                    submitBtn.textContent = 'ПРОВЕРИТЬ';
+                    keyInput.focus();
+                }
+            }, 1000);
+        }
+        
+        // Эффект тряски
+        function shakeContainer() {
+            container.style.transform = 'translateX(-10px)';
+            
+            setTimeout(() => {
+                container.style.transform = 'translateX(10px)';
+            }, 100);
+            
+            setTimeout(() => {
+                container.style.transform = 'translateX(-5px)';
+            }, 200);
+            
+            setTimeout(() => {
+                container.style.transform = 'translateX(5px)';
+            }, 300);
+            
+            setTimeout(() => {
+                container.style.transform = 'translateX(0)';
+            }, 400);
+        }
+        
+        // Звук печати (опционально)
+        function typeSound() {
+            // Создаем звуковой контекст
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) {
+                    const audioCtx = new AudioContext();
+                    const oscillator = audioCtx.createOscillator();
+                    const gainNode = audioCtx.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    
+                    oscillator.frequency.value = 800;
+                    oscillator.type = 'sine';
+                    
+                    gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                    
+                    oscillator.start();
+                    oscillator.stop(audioCtx.currentTime + 0.5);
+                }
+            } catch (e) {
+                // Игнорируем ошибки аудио
+            }
+        }
+        
+        // Обработчики событий
+        submitBtn.addEventListener('click', checkKey);
+        
+        keyInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                checkKey();
+            }
+        });
+        
+        keyInput.addEventListener('input', function() {
+            this.style.borderColor = '#ff0000';
+        });
+        
+        // Автофокус на поле ввода
+        window.addEventListener('load', function() {
+            keyInput.focus();
+            createParticles();
+        });
+        
+        // Защита от копирования и правого клика
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            showError();
+        });
+        
+        document.addEventListener('copy', function(e) {
+            e.preventDefault();
+        });
+        
+        // Случайные помехи в тексте
+        setInterval(() => {
+            if (!accessGranted && Math.random() > 0.8) {
+                const originalText = mainMessage.textContent;
+                const glitchChars = ['_', '|', '/', '\\', '*', '#', '@'];
+                
+                let glitchedText = originalText.split('').map(char => {
+                    if (Math.random() > 0.7 && char !== ' ') {
+                        return glitchChars[Math.floor(Math.random() * glitchChars.length)];
+                    }
+                    return char;
+                }).join('');
+                
+                mainMessage.textContent = glitchedText;
+                
+                setTimeout(() => {
+                    if (!accessGranted) {
+                        mainMessage.textContent = originalText;
+                    }
+                }, 100);
+            }
+        }, 3000);
+        
+        // Консольное сообщение
+        console.log('%c🔒 СИСТЕМА ДОСТУПА АКТИВИРОВАНА', 
+            'color: #ff0000; font-size: 14px; font-weight: bold;');
+        console.log('%cКлюч требуется для продолжения', 
+            'color: #666;');
+    </script>
+</body>
+</html>
